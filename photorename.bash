@@ -40,7 +40,7 @@ clean_up() {
 }
 
 error_exit() {
-	printf  -- "${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
+	printf -- "${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
 	clean_up
 	exit 1
 }
@@ -64,7 +64,7 @@ signal_exit() {
 }
 
 usage() {
-       	printf  -- "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n\n"
+	printf -- "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n\n"
 }
 
 help_message() {
