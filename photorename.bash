@@ -40,7 +40,7 @@ clean_up() {
 }
 
 error_exit() {
-	printf -- "${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
+	printf  -- "${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
 	clean_up
 	exit 1
 }
@@ -64,7 +64,7 @@ signal_exit() {
 }
 
 usage() {
-       	printf -- "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n\n"
+       	printf  -- "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n\n"
 }
 
 help_message() {
@@ -240,22 +240,25 @@ evalreturnedtags(){
 	fi
 }
 
-numfiles(){
-	tryrecurse | wc -l
-}
 
 if [[ $dryrun ]]; then
-	printf -- "Performing DRY RUN! No files will be modified!\n\n"
+	printf  -- "Performing DRY RUN! No files will be modified!\n\n"
 fi
 
 flags=`genflags`
 
+numfiles=`tryrecurse | wc -l`
+
 # do the thing
-printf "Processing `numfiles` files\n\n"
+printf -- "Processing $numfiles files\n\n"
+
+filenum=0
 
 oldifs=$IFS
 IFS=$'\n'
 for file in `tryrecurse`; do
+	filenum=$((filenum+1))
+	printf "\r%s" "[$filenum/$numfiles] $((filenum*100/numfiles))% "
 	IFS=$oldifs
 
 	tags=`gettags`
@@ -275,6 +278,5 @@ done
 if [[ -z $failed ]]; then
 	graceful_exit
 else
-	printf "\n"
 	error_exit "Failed to create unique names for the following files:\n$failed"
 fi
