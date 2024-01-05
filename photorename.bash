@@ -40,7 +40,7 @@ clean_up() {
 }
 
 error_exit() {
-	printf "${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
+	printf -- "${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
 	clean_up
 	exit 1
 }
@@ -56,7 +56,7 @@ signal_exit() {
 		INT)
 			error_exit "Program interrupted by user" ;;
 		TERM)
-			printf"\n$PROGNAME: Program terminated\n" >&2
+			printf -- "\n$PROGNAME: Program terminated\n" >&2
 			graceful_exit ;;
 		*)
 			error_exit "$PROGNAME: Terminating on unknown signal" ;;
@@ -64,7 +64,7 @@ signal_exit() {
 }
 
 usage() {
-       	printf "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n\n"
+       	printf -- "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n\n"
 }
 
 help_message() {
@@ -90,8 +90,8 @@ testdir(){
 	if ls $1 >/dev/null; then
 		:
 	else
-		printf "\n"
-		error_exit "File or Directory specified: '$1' does not exist."
+		printf -- "\n"
+		error_exit "File or Directory specified: '$1' does not exist"
 	fi
 }
 
@@ -124,7 +124,7 @@ while [[ -n $1 ]]; do
 				error_exit "No file specified for option $1"
 			else
 				file="$2"
-				testdir $file
+				testdir "$file"
 			fi
 			shift ;;
 		-p | --preserve-tree)
@@ -161,19 +161,19 @@ genflags(){
 genfilename(){
 	for tag in ${returnedtags[@]}; do
 		if [ $tag == "filetypeextension" ]; then
-			printf ".${!tag}"
+			printf -- ".${!tag}"
 		else
-			printf "${!tag}_"
+			printf -- "${!tag}_"
 		fi
 	done
 }
 
 tryrename(){
 	if [[ $preservetree ]]; then
-		output=`dirname $file`
+		output=`dirname "$file"`
 	fi
 	if [[ $dryrun ]]; then
-		printf "rename '$file' -> '$output/`genfilename`'\n"
+		printf -- "rename '$file' -> '$output/`genfilename`'\n"
 	else
 		mv -vi "$file" "$output/`genfilename`"
 	fi
@@ -182,7 +182,7 @@ tryrename(){
 tryrecurse(){
 
 	if [[ $file ]]; then
-		printf "$file"
+		printf -- "$file"
 	elif [[ $recursive ]]; then
 		find "$directory" -type f
 	else
@@ -229,23 +229,37 @@ evalreturnedtags(){
 		returnedtags=("${returnedtags[@]/datetimeoriginal}")
 		tryrename
 	elif [[ ${returnedtags[@]} == *datetimeoriginal* ]]; then
-		tryrename
+		if [[ ${#datetimeoriginal} == 19 ]]; then
+			tryrename
+		else
+			failed+="\n$file"
+		fi
 	else
 		failed+="\n$file"
 	fi
 }
 
+numfiles(){
+	tryrecurse | wc -l
+}
+
+
 if [[ $dryrun ]]; then
-	printf "Performing DRY RUN! No files will be modified!\n\n"
+	printf -- "Performing DRY RUN! No files will be modified!\n\n"
 fi
 
 flags=`genflags`
 
 # do the thing
+printf "Processing `numfiles` files"
+
+oldifs=$IFS
+IFS=$'\n'
 for file in `tryrecurse`; do
+	IFS=$oldifs
+
 	tags=`gettags`
 
-	oldifs=$IFS
 	IFS=$'\n'
 	tagsarr=($tags)
 	IFS=$oldifs
