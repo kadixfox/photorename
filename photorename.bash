@@ -25,7 +25,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 # Usage:
-# photorename [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file]
+# photorename [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]
 
 # Revision history:
 # 2024-01-04 Created by new_script ver. 3.3
@@ -64,7 +64,7 @@ signal_exit() {
 }
 
 usage() {
-       	printf "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file]\n"
+       	printf "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n"
 }
 
 help_message() {
@@ -75,12 +75,13 @@ help_message() {
   `usage`
 
   Options:
-  -h, --help  Display this help message and exit.
-  -d, --directory  Directory to find files in. Defaults to current directory.
-  -r, --recursive  Recurse subdirectories to find files.
-  -n, --dryrun Pprint proposed changed without applying.
-  -o, --output  Directory to move renamed files. Defaults to current directory.
-  -f, --file  Operate on a single file.
+  -h, --help  Display this help message and exit
+  -d, --directory  Directory to find files in; defaults to current directory
+  -r, --recursive  Recurse subdirectories to find files
+  -n, --dryrun Print proposed changed without applying
+  -o, --output  Directory to move renamed files; defaults to current directory
+  -f, --file  Operate on a single file
+  -p, --preserve-tree  Preserve output directories of input files when operating recursively,                        exclusive to -r
 
 	_EOF_
 	return
@@ -90,7 +91,7 @@ testdir(){
 	if ls $1 >/dev/null; then
 		:
 	else
-		error_exit "Directory specified: '$1' does not exist."
+		error_exit "File or Directory specified: '$1' does not exist."
 	fi
 }
 
@@ -127,10 +128,16 @@ while [[ -n $1 ]]; do
 				testdir $file
 			fi
 			shift ;;
+		-p | --preserve-tree)
+			if [[ $recursive ]]; then
+				preservetree=1
+			else
+				usage
+				error_exit "--preserve-tree exclusive to --recursive"
+			fi ;;
 		*)
 			usage
-			printf "\n"
-			error_exit "Unknown option $1" ;;
+			error_exit "Unknown option $1" ;; 
 	esac
 	shift
 done
@@ -163,6 +170,9 @@ genfilename(){
 }
 
 tryrename(){
+	if [[ $preservetree ]]; then
+		output=`dirname $file`
+	fi
 	if [[ $dryrun ]]; then
 		printf "rename '$file' -> '$output/`genfilename`'\n"
 	else
