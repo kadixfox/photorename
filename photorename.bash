@@ -80,7 +80,8 @@ help_message() {
   -n, --dryrun Print proposed changed without applying
   -o, --output  Directory to move renamed files; defaults to current directory
   -f, --file  Operate on a single file
-  -p, --preserve-tree  Preserve output directories of input files when operating recursively,                        exclusive to -r
+  -p, --preserve-tree  Preserve output directories of input files when operating recursively,
+                       exclusive to -r
 
 	_EOF_
 	return
