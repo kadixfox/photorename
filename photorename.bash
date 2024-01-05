@@ -40,7 +40,7 @@ clean_up() {
 }
 
 error_exit() {
-	printf "${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
+	printf "\n${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
 	clean_up
 	exit 1
 }
@@ -124,6 +124,7 @@ while [[ -n $1 ]]; do
 				error_exit "No file specified for option $1"
 			else
 				file="$2"
+				testdir $file
 			fi
 			shift ;;
 		*)
