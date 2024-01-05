@@ -40,7 +40,7 @@ clean_up() {
 }
 
 error_exit() {
-	printf "\n${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
+	printf "${PROGNAME}: ${1:-"Unknown Error"}\n" >&2
 	clean_up
 	exit 1
 }
@@ -64,7 +64,7 @@ signal_exit() {
 }
 
 usage() {
-       	printf "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n"
+       	printf "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n\n"
 }
 
 help_message() {
@@ -73,7 +73,6 @@ help_message() {
   rename photos/videos in current directory to unique, informative names based on camera model / time taken / shutter count / focal length / shutter speed / aperture
 
   `usage`
-
   Options:
   -h, --help  Display this help message and exit
   -d, --directory  Directory to find files in; defaults to current directory
@@ -91,6 +90,7 @@ testdir(){
 	if ls $1 >/dev/null; then
 		:
 	else
+		printf "\n"
 		error_exit "File or Directory specified: '$1' does not exist."
 	fi
 }
@@ -121,7 +121,6 @@ while [[ -n $1 ]]; do
 		-f | --file)
 			if [[ -z $2 ]]; then
 				usage
-				printf "\n"
 				error_exit "No file specified for option $1"
 			else
 				file="$2"
