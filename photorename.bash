@@ -250,7 +250,7 @@ fi
 flags=`genflags`
 
 # do the thing
-printf "Processing `numfiles` files"
+printf "Processing `numfiles` files\n\n"
 
 oldifs=$IFS
 IFS=$'\n'
@@ -274,5 +274,6 @@ done
 if [[ -z $failed ]]; then
 	graceful_exit
 else
+	printf "\n"
 	error_exit "Failed to create unique names for the following files:\n$failed"
 fi
