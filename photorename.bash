@@ -243,7 +243,6 @@ numfiles(){
 	tryrecurse | wc -l
 }
 
-
 if [[ $dryrun ]]; then
 	printf -- "Performing DRY RUN! No files will be modified!\n\n"
 fi
