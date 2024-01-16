@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------
 # photorename - rename photos/videos in current directory to unique,
 # informative names based on camera model / time taken / shutter count /
-# focal length / shutter speed / aperture
+#focal length / shutter speed / aperture
 
 # Copyright 2024,  <kadixfox>
 
@@ -25,10 +25,14 @@
 # DEALINGS IN THE SOFTWARE.
 
 # Usage:
-# photorename [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]
+# photorename [-h|--help] [-c|--copy] [-s|--symlink] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]
 
 # Revision history:
-# 2024-01-04 Created by new_script ver. 3.3
+# 2024-01-16	Allow specifying output file name when running recursively and preserving tree
+#		Allow choosing a copy (cp) or a symlink (ln -s) over a move (mv)
+#		Prevent recursing into output dir
+#		Various code and formatting fixes
+# 2024-01-04	Created by new_script ver. 3.3
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
@@ -64,24 +68,25 @@ signal_exit() {
 }
 
 usage() {
-	printf -- "Usage: $PROGNAME [-h|--help] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n\n"
+	printf -- "Usage: $PROGNAME [-h|--help] [-c|--copy] [-s|--symlink] [-d|--directory] [-r|--recursive] [-n|--dryrun] [-o|--output] [-f|--file] [-p|--preserve-tree]\n\n"
 }
 
 help_message() {
 	cat <<- _EOF_
-  $PROGNAME ver. $VERSION
-  rename photos/videos in current directory to unique, informative names based on camera model / time taken / shutter count / focal length / shutter speed / aperture
+$PROGNAME ver. $VERSION
+rename photos/videos in current directory to unique, informative names based on camera model / time taken / shutter count / focal length / shutter speed / aperture
 
-  `usage`
+`usage`
   Options:
   -h, --help  Display this help message and exit
+  -c, --copy  Copy files to output rather than move, not possible with -s
+  -s, --symlink  Symlink files to output rather than move, not possible with -c
   -d, --directory  Directory to find files in; defaults to current directory
   -r, --recursive  Recurse subdirectories to find files
   -n, --dryrun Print proposed changed without applying
   -o, --output  Directory to move renamed files; defaults to current directory
   -f, --file  Operate on a single file
-  -p, --preserve-tree  Preserve output directories of input files when operating recursively,
-                       exclusive to -r
+  -p, --preserve-tree  Preserve output directories of input files when operating recursively; exclusive to -r
 
 	_EOF_
 	return
@@ -107,9 +112,18 @@ while [[ -n $1 ]]; do
 	case $1 in
 		-h | --help)
 			help_message; graceful_exit ;;
+		-c | --copy)
+			copy=1 ;;
+		-s | --symlink)
+			if [[ $copy ]]; then
+				usage
+				error_exit "--symlink cannot be used with --copy and vice versa"
+			else
+				symlink=1
+			fi ;;
 		-d | --directory)
 			directory="$2"
-			testdir $directory
+			testdir "$directory"
 			shift ;;
 		-r | --recursive)
 			recursive=1 ;;
@@ -117,13 +131,15 @@ while [[ -n $1 ]]; do
 			dryrun=1 ;;
 		-o | --output)
 			output="$2"
-			testdir $output
+			presout="$output"
+			testdir "$output"
 			shift ;;
 		-f | --file)
 			if [[ -z $2 ]]; then
 				usage
 				error_exit "No file specified for option $1"
 			else
+				nocount=1
 				file="$2"
 				testdir "$file"
 			fi
@@ -149,6 +165,7 @@ fi
 
 if [[ -z $output ]]; then
 	output=.
+	presout=.
 fi
 
 desiredtags=(model datetimeoriginal shuttercount focallength shutterspeed aperture filetypeextension)
@@ -169,23 +186,33 @@ genfilename(){
 	done
 }
 
+dooperation(){
+	if [[ $copy ]]; then
+		cp -vi "./`realpath --relative-to=. \"$file\"`" "./`realpath --relative-to=. \"$output/$(genfilename)\"`"
+	elif [[ $symlink ]]; then
+		ln -svi "`readlink -f \"$file\"`" "./`realpath --relative-to=. \"$output/$(genfilename)\"`"
+	else
+		mv -vi "./`realpath --relative-to=. \"$file\"`" "./`realpath --relative-to=. \"$output/$(genfilename)\"`"
+	fi
+}
+
 tryrename(){
 	if [[ $preservetree ]]; then
-		output=`dirname "$file"`
+		output=$presout/`dirname "$file"`
 	fi
 	if [[ $dryrun ]]; then
-		printf -- "rename '$file' -> '$output/`genfilename`'\n"
+		printf -- "'$file' -> '$output/`genfilename`'\n"
 	else
-		mv -vi "$file" "$output/`genfilename`"
+		mkdir -p "$output"
+		dooperation
 	fi
 }
 
 tryrecurse(){
-
 	if [[ $file ]]; then
 		printf -- "$file"
 	elif [[ $recursive ]]; then
-		find "$directory" -type f
+		find "$directory" -type f -not -path "./`realpath --relative-to=. \"$output\"`/*"
 	else
 		find "$directory" -maxdepth 1 -type f
 	fi
@@ -247,7 +274,11 @@ fi
 
 flags=`genflags`
 
-numfiles=`tryrecurse | wc -l`
+if [[ -z $nocount ]]; then
+	numfiles=`tryrecurse | wc -l`
+else
+	numfiles=1
+fi
 
 # do the thing
 printf -- "Processing $numfiles files\n\n"
